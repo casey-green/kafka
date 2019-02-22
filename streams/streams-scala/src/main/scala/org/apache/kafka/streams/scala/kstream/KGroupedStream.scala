@@ -45,11 +45,8 @@ class KGroupedStream[K, V](val inner: KGroupedStreamJ[K, V]) {
    * represent the latest (rolling) count (i.e., number of records) for each key
    * @see `org.apache.kafka.streams.kstream.KGroupedStream#count`
    */
-  def count()(implicit materialized: Materialized[K, Long, ByteArrayKeyValueStore]): KTable[K, Long] = {
-    val c: KTable[K, java.lang.Long] =
-      inner.count(materialized.asInstanceOf[Materialized[K, java.lang.Long, ByteArrayKeyValueStore]])
-    c.mapValues[Long](Long2long _)
-  }
+  def count()(implicit materialized: Materialized[K, Long, ByteArrayKeyValueStore]): KTable[K, Long] =
+    inner.aggregate((() => 0L).asInitializer, ((_: K, _: V, agg: Long) => agg + 1L).asAggregator, materialized)
 
   /**
    * Combine the values of records in this stream by the grouped key.
