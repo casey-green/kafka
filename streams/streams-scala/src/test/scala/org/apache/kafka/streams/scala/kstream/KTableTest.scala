@@ -21,7 +21,6 @@ package org.apache.kafka.streams.scala.kstream
 import java.time.Duration
 
 import org.apache.kafka.streams.kstream.Suppressed.BufferConfig
-import org.apache.kafka.streams.kstream.internals.suppress.FinalResultsSuppressionBuilder
 import org.apache.kafka.streams.kstream.{Suppressed, TimeWindows, Windowed}
 import org.apache.kafka.streams.scala.ImplicitConversions._
 import org.apache.kafka.streams.scala.Serdes._
