@@ -258,8 +258,8 @@ class KTableTest extends FlatSpec with Matchers with TestDriver {
     val builder = new StreamsBuilder()
     val sourceTopic = "source"
     val sinkTopic = "sink"
-    // Duplicating SuppressScenarioTest.shouldSupportFinalResultsForSessionWindows
-    val window = SessionWindows.`with`(Duration.ofMillis(5L)).grace(Duration.ofMillis(5L))
+    // Very similar to SuppressScenarioTest.shouldSupportFinalResultsForSessionWindows
+    val window = SessionWindows.`with`(Duration.ofMillis(5L)).grace(Duration.ofMillis(10L))
     val suppression = Suppressed.untilWindowCloses(BufferConfig.unbounded())
 
     val table: KTable[Windowed[String], Long] = builder
@@ -284,24 +284,27 @@ class KTableTest extends FlatSpec with Matchers with TestDriver {
       Option(testDriver.readRecord[String, Long](sinkTopic)) shouldBe None
     }
     {
-      // new window
-      testDriver.pipeRecord(sourceTopic, ("k1", "v1"), 7L)
-      val record = Option(testDriver.readRecord[String, Long](sinkTopic))
-      record.isDefined shouldBe true
-      record.get.key shouldBe "0:1:k1"
-      record.get.value shouldBe 2L
+      // new window, but grace period hasn't ended for first window
+      testDriver.pipeRecord(sourceTopic, ("k1", "v1"), 8L)
+      Option(testDriver.readRecord[String, Long](sinkTopic)) shouldBe None
     }
     {
-      // late event for first window - this should get dropped from all streams, since the first window is now closed.
-      testDriver.pipeRecord(sourceTopic, ("k1", "v1"), 1L)
+      // late event for first window, included since grade period hasn't passed
+      testDriver.pipeRecord(sourceTopic, ("k1", "v1"), 2L)
       Option(testDriver.readRecord[String, Long](sinkTopic)) shouldBe None
     }
     {
       // push stream time forward to flush other events through
       testDriver.pipeRecord(sourceTopic, ("k1", "v1"), 30L)
-      val record = testDriver.readRecord[String, Long](sinkTopic)
-      record.key shouldBe "7:7:k1"
-      record.value shouldBe 1L
+      // too-late event should get dropped from the stream
+      testDriver.pipeRecord(sourceTopic, ("k1", "v1"), 3L)
+      // should now have to results
+      val r1 = testDriver.readRecord[String, Long](sinkTopic)
+      r1.key shouldBe "0:2:k1"
+      r1.value shouldBe 3L
+      val r2 = testDriver.readRecord[String, Long](sinkTopic)
+      r2.key shouldBe "8:8:k1"
+      r2.value shouldBe 1
     }
     testDriver.readRecord[String, Long](sinkTopic) shouldBe null
 
