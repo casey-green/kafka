@@ -20,7 +20,7 @@ import org.apache.kafka.streams.kstream.Suppressed;
 
 import static org.apache.kafka.streams.kstream.internals.suppress.BufferFullStrategy.SHUT_DOWN;
 
-abstract class BufferConfigInternal<BC extends Suppressed.BufferConfig<BC>> implements Suppressed.BufferConfig<BC> {
+abstract class BufferConfigInternal implements Suppressed.BufferConfig {
     public abstract long maxRecords();
 
     public abstract long maxBytes();
@@ -29,7 +29,7 @@ abstract class BufferConfigInternal<BC extends Suppressed.BufferConfig<BC>> impl
     public abstract BufferFullStrategy bufferFullStrategy();
 
     @Override
-    public Suppressed.StrictBufferConfig withNoBound() {
+    public Suppressed.BufferConfig withNoBound() {
         return new StrictBufferConfigImpl(
             Long.MAX_VALUE,
             Long.MAX_VALUE,
@@ -38,7 +38,7 @@ abstract class BufferConfigInternal<BC extends Suppressed.BufferConfig<BC>> impl
     }
 
     @Override
-    public Suppressed.StrictBufferConfig shutDownWhenFull() {
+    public Suppressed.BufferConfig shutDownWhenFull() {
         return new StrictBufferConfigImpl(maxRecords(), maxBytes(), SHUT_DOWN);
     }
 
