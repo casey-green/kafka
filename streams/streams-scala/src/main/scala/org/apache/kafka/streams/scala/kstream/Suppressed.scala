@@ -19,7 +19,12 @@ import java.time.Duration
 
 import org.apache.kafka.streams.kstream.{Windowed, Suppressed => SupressedJ}
 import org.apache.kafka.streams.kstream.Suppressed.{StrictBufferConfig, BufferConfig => BufferConfigJ}
-import org.apache.kafka.streams.kstream.internals.suppress.{EagerBufferConfigImpl, FinalResultsSuppressionBuilder, StrictBufferConfigImpl, SuppressedInternal}
+import org.apache.kafka.streams.kstream.internals.suppress.{
+  EagerBufferConfigImpl,
+  FinalResultsSuppressionBuilder,
+  StrictBufferConfigImpl,
+  SuppressedInternal
+}
 
 /**
  * Duplicates the static factory methods inside the Java interface [[org.apache.kafka.streams.kstream.Suppressed]].
