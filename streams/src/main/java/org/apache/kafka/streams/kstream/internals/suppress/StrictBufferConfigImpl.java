@@ -22,7 +22,7 @@ import java.util.Objects;
 
 import static org.apache.kafka.streams.kstream.internals.suppress.BufferFullStrategy.SHUT_DOWN;
 
-public class StrictBufferConfigImpl extends BufferConfigInternal<Suppressed.StrictBufferConfig> implements Suppressed.StrictBufferConfig {
+public class StrictBufferConfigImpl extends BufferConfigInternal {
 
     private final long maxRecords;
     private final long maxBytes;
@@ -43,12 +43,12 @@ public class StrictBufferConfigImpl extends BufferConfigInternal<Suppressed.Stri
     }
 
     @Override
-    public Suppressed.StrictBufferConfig withMaxRecords(final long recordLimit) {
+    public Suppressed.BufferConfig withMaxRecords(final long recordLimit) {
         return new StrictBufferConfigImpl(recordLimit, maxBytes, bufferFullStrategy);
     }
 
     @Override
-    public Suppressed.StrictBufferConfig withMaxBytes(final long byteLimit) {
+    public Suppressed.BufferConfig withMaxBytes(final long byteLimit) {
         return new StrictBufferConfigImpl(maxRecords, byteLimit, bufferFullStrategy);
     }
 
