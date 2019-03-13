@@ -24,9 +24,9 @@ import java.util.Objects;
 
 public class FinalResultsSuppressionBuilder<K extends Windowed> implements Suppressed<K>, NamedSuppressed<K> {
     private final String name;
-    private final StrictBufferConfig bufferConfig;
+    private final BufferConfig bufferConfig;
 
-    public FinalResultsSuppressionBuilder(final String name, final Suppressed.StrictBufferConfig bufferConfig) {
+    public FinalResultsSuppressionBuilder(final String name, final BufferConfig bufferConfig) {
         this.name = name;
         this.bufferConfig = bufferConfig;
     }

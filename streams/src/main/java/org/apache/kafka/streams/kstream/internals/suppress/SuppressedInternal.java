@@ -24,10 +24,10 @@ import java.util.Objects;
 
 public class SuppressedInternal<K> implements Suppressed<K>, NamedSuppressed<K> {
     private static final Duration DEFAULT_SUPPRESSION_TIME = Duration.ofMillis(Long.MAX_VALUE);
-    private static final StrictBufferConfigImpl DEFAULT_BUFFER_CONFIG = (StrictBufferConfigImpl) BufferConfig.unbounded();
+    private static final BufferConfig DEFAULT_BUFFER_CONFIG = BufferConfig.unbounded();
 
     private final String name;
-    private final BufferConfigInternal bufferConfig;
+    private final BufferConfig bufferConfig;
     private final Duration timeToWaitForMoreEvents;
     private final TimeDefinition<K> timeDefinition;
     private final boolean safeToDropTombstones;
@@ -53,7 +53,7 @@ public class SuppressedInternal<K> implements Suppressed<K>, NamedSuppressed<K> 
         this.name = name;
         this.timeToWaitForMoreEvents = suppressionTime == null ? DEFAULT_SUPPRESSION_TIME : suppressionTime;
         this.timeDefinition = timeDefinition == null ? TimeDefinitions.RecordTimeDefintion.instance() : timeDefinition;
-        this.bufferConfig = bufferConfig == null ? DEFAULT_BUFFER_CONFIG : (BufferConfigInternal) bufferConfig;
+        this.bufferConfig = bufferConfig == null ? DEFAULT_BUFFER_CONFIG : bufferConfig;
         this.safeToDropTombstones = safeToDropTombstones;
     }
 
@@ -67,7 +67,7 @@ public class SuppressedInternal<K> implements Suppressed<K>, NamedSuppressed<K> 
         return name;
     }
 
-    BufferConfigInternal bufferConfig() {
+    BufferConfig bufferConfig() {
         return bufferConfig;
     }
 

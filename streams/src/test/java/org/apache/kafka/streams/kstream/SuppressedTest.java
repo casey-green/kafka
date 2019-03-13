@@ -16,9 +16,8 @@
  */
 package org.apache.kafka.streams.kstream;
 
-import org.apache.kafka.streams.kstream.internals.suppress.EagerBufferConfigImpl;
+import org.apache.kafka.streams.kstream.internals.suppress.BufferFullStrategy;
 import org.apache.kafka.streams.kstream.internals.suppress.FinalResultsSuppressionBuilder;
-import org.apache.kafka.streams.kstream.internals.suppress.StrictBufferConfigImpl;
 import org.apache.kafka.streams.kstream.internals.suppress.SuppressedInternal;
 import org.junit.Test;
 
@@ -37,22 +36,45 @@ public class SuppressedTest {
 
     @Test
     public void bufferBuilderShouldBeConsistent() {
+        final Suppressed.BufferConfig bc0 = maxBytes(2L).withMaxRecords(4L).withNoBound();
         assertThat(
             "noBound should remove bounds",
-            maxBytes(2L).withMaxRecords(4L).withNoBound(),
+            bc0,
             is(unbounded())
         );
-
         assertThat(
-            "keys alone should be set",
-            maxRecords(2L),
-            is(new EagerBufferConfigImpl(2L, MAX_VALUE))
+            "noBound should shutdown when full",
+            bc0.bufferFullStrategy(),
+            is(SHUT_DOWN)
         );
 
+        final Suppressed.BufferConfig bc1 = maxRecords(2L);
+        assertThat(
+                "keys are set.",
+                bc1.maxRecords(),
+                is(2L)
+        );
+        assertThat(
+                "bytes are not set.",
+                bc1.maxBytes(),
+                is(MAX_VALUE)
+        );
+
+        final Suppressed.BufferConfig bc2 = maxBytes(2L);
         assertThat(
             "size alone should be set",
-            maxBytes(2L),
-            is(new EagerBufferConfigImpl(MAX_VALUE, 2L))
+            bc2.maxBytes(),
+            is(2L)
+        );
+        assertThat(
+            "size alone should be set",
+            bc2.maxRecords(),
+            is(MAX_VALUE)
+        );
+        assertThat(
+            "Buffer strategy is emit",
+            bc2.bufferFullStrategy(),
+            is(BufferFullStrategy.EMIT)
         );
     }
 
@@ -91,7 +113,7 @@ public class SuppressedTest {
         assertThat(
             "all constraints should be set",
             untilTimeLimit(ofMillis(2L), maxRecords(3L).withMaxBytes(2L)),
-            is(new SuppressedInternal<>(null, ofMillis(2), new EagerBufferConfigImpl(3L, 2L), null, false))
+            is(new SuppressedInternal<>(null, ofMillis(2), maxRecords(3L).withMaxBytes(2L), null, false))
         );
     }
 
@@ -105,13 +127,13 @@ public class SuppressedTest {
 
         assertThat(
             untilWindowCloses(maxRecords(2L).shutDownWhenFull()),
-            is(new FinalResultsSuppressionBuilder<>(null, new StrictBufferConfigImpl(2L, MAX_VALUE, SHUT_DOWN))
+            is(new FinalResultsSuppressionBuilder<>(null, maxRecords(2L).shutDownWhenFull())
             )
         );
 
         assertThat(
             untilWindowCloses(maxBytes(2L).shutDownWhenFull()),
-            is(new FinalResultsSuppressionBuilder<>(null, new StrictBufferConfigImpl(MAX_VALUE, 2L, SHUT_DOWN))
+            is(new FinalResultsSuppressionBuilder<>(null, maxBytes(2L).shutDownWhenFull())
             )
         );
 
@@ -122,13 +144,13 @@ public class SuppressedTest {
 
         assertThat(
             untilWindowCloses(maxRecords(2L).shutDownWhenFull()).withName("name"),
-            is(new FinalResultsSuppressionBuilder<>("name", new StrictBufferConfigImpl(2L, MAX_VALUE, SHUT_DOWN))
+            is(new FinalResultsSuppressionBuilder<>("name", maxRecords(2L).shutDownWhenFull())
             )
         );
 
         assertThat(
             untilWindowCloses(maxBytes(2L).shutDownWhenFull()).withName("name"),
-            is(new FinalResultsSuppressionBuilder<>("name", new StrictBufferConfigImpl(MAX_VALUE, 2L, SHUT_DOWN))
+            is(new FinalResultsSuppressionBuilder<>("name", maxBytes(2L).shutDownWhenFull())
             )
         );
     }

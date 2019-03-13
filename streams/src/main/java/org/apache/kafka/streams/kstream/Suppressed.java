@@ -16,47 +16,54 @@
  */
 package org.apache.kafka.streams.kstream;
 
-import org.apache.kafka.streams.kstream.internals.suppress.EagerBufferConfigImpl;
+import org.apache.kafka.streams.kstream.internals.suppress.BufferFullStrategy;
 import org.apache.kafka.streams.kstream.internals.suppress.FinalResultsSuppressionBuilder;
-import org.apache.kafka.streams.kstream.internals.suppress.StrictBufferConfigImpl;
 import org.apache.kafka.streams.kstream.internals.suppress.SuppressedInternal;
 
 import java.time.Duration;
+import java.util.Objects;
 
 public interface Suppressed<K> {
 
     /**
-     * Marker interface for a buffer configuration that is "strict" in the sense that it will strictly
-     * enforce the time bound and never emit early.
+     * Configures how the suppression operator buffers records.
      */
-    interface StrictBufferConfig extends BufferConfig<StrictBufferConfig> {
+    final class BufferConfig {
+        private final long maxRecords;
+        private final long maxBytes;
+        private final BufferFullStrategy bufferFullStrategy;
 
-    }
+        BufferConfig(final long maxRecords, final long maxBytes, final BufferFullStrategy bufferFullStrategy) {
+            this.maxRecords = maxRecords;
+            this.maxBytes = maxBytes;
+            this.bufferFullStrategy = bufferFullStrategy;
+        }
+        
+        public long maxRecords() {
+            return maxRecords;
+        }
+        
+        public long maxBytes() {
+            return maxBytes;
+        }
 
-    interface BufferConfig<BC extends BufferConfig<BC>> {
-        /**
-         * Create a size-constrained buffer in terms of the maximum number of keys it will store.
-         */
-        static BufferConfig<?> maxRecords(final long recordLimit) {
-            return new EagerBufferConfigImpl(recordLimit, Long.MAX_VALUE);
+        public BufferFullStrategy bufferFullStrategy() {
+            return bufferFullStrategy;
         }
 
         /**
-         * Set a size constraint on the buffer in terms of the maximum number of keys it will store.
+         * Create a size-constrained buffer in terms of the maximum number of keys it will store.
          */
-        BC withMaxRecords(final long recordLimit);
+        public static BufferConfig maxRecords(final long recordLimit) {
+            return new BufferConfig(recordLimit, Long.MAX_VALUE, BufferFullStrategy.EMIT);
+        }
 
         /**
          * Create a size-constrained buffer in terms of the maximum number of bytes it will use.
          */
-        static BufferConfig<?> maxBytes(final long byteLimit) {
-            return new EagerBufferConfigImpl(Long.MAX_VALUE, byteLimit);
+        public static BufferConfig maxBytes(final long byteLimit) {
+            return new BufferConfig(Long.MAX_VALUE, byteLimit, BufferFullStrategy.EMIT);
         }
-
-        /**
-         * Set a size constraint on the buffer, the maximum number of bytes it will use.
-         */
-        BC withMaxBytes(final long byteLimit);
 
         /**
          * Create a buffer unconstrained by size (either keys or bytes).
@@ -73,8 +80,22 @@ public interface Suppressed<K> {
          * This buffer is "strict" in the sense that it will enforce the time bound or crash.
          * It will never emit early.
          */
-        static StrictBufferConfig unbounded() {
-            return new StrictBufferConfigImpl();
+        public static BufferConfig unbounded() {
+            return new BufferConfig(Long.MAX_VALUE, Long.MAX_VALUE, BufferFullStrategy.SHUT_DOWN);
+        }
+
+        /**
+         * Set a size constraint on the buffer in terms of the maximum number of keys it will store.
+         */
+        public BufferConfig withMaxRecords(final long recordLimit) {
+            return new BufferConfig(recordLimit, maxBytes, bufferFullStrategy);
+        }
+        
+        /**
+         * Set a size constraint on the buffer, the maximum number of bytes it will use.
+         */
+        public BufferConfig withMaxBytes(final long byteLimit) {
+            return new BufferConfig(maxRecords, byteLimit, bufferFullStrategy);
         }
 
         /**
@@ -92,7 +113,9 @@ public interface Suppressed<K> {
          * This buffer is "strict" in the sense that it will enforce the time bound or crash.
          * It will never emit early.
          */
-        StrictBufferConfig withNoBound();
+        public BufferConfig withNoBound() {
+            return unbounded();
+        }
 
         /**
          * Set the buffer to gracefully shut down the application when any of its constraints are violated
@@ -100,7 +123,9 @@ public interface Suppressed<K> {
          * This buffer is "strict" in the sense that it will enforce the time bound or shut down.
          * It will never emit early.
          */
-        StrictBufferConfig shutDownWhenFull();
+        public BufferConfig shutDownWhenFull() {
+            return new BufferConfig(maxRecords, maxBytes, BufferFullStrategy.SHUT_DOWN);
+        }
 
         /**
          * Set the buffer to just emit the oldest records when any of its constraints are violated.
@@ -108,7 +133,36 @@ public interface Suppressed<K> {
          * This buffer is "not strict" in the sense that it may emit early, so it is suitable for reducing
          * duplicate results downstream, but does not promise to eliminate them.
          */
-        BufferConfig emitEarlyWhenFull();
+        public BufferConfig emitEarlyWhenFull() {
+            return new BufferConfig(maxRecords, maxBytes, BufferFullStrategy.EMIT);
+        }
+
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final BufferConfig that = (BufferConfig) o;
+            return maxRecords == that.maxRecords &&
+                    maxBytes == that.maxBytes &&
+                    bufferFullStrategy == that.bufferFullStrategy;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(maxRecords, maxBytes, bufferFullStrategy);
+        }
+
+        @Override
+        public String toString() {
+            return "BufferConfig{maxRecords=" + maxRecords +
+                    ", maxBytes=" + maxBytes +
+                    ", bufferFullStrategy=" + bufferFullStrategy +
+                    '}';
+        }
     }
 
     /**
@@ -131,7 +185,7 @@ public interface Suppressed<K> {
      *                     property to emit early and then issue an update later.
      * @return a "final results" mode suppression configuration
      */
-    static Suppressed<Windowed> untilWindowCloses(final StrictBufferConfig bufferConfig) {
+    static Suppressed<Windowed> untilWindowCloses(final BufferConfig bufferConfig) {
         return new FinalResultsSuppressionBuilder<>(null, bufferConfig);
     }
 
