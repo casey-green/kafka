@@ -26,30 +26,38 @@ import java.time.Duration;
 
 public interface Suppressed<K> {
 
-    interface BufferConfig {
+    /**
+     * Marker interface for a buffer configuration that is "strict" in the sense that it will strictly
+     * enforce the time bound and never emit early.
+     */
+    interface StrictBufferConfig extends BufferConfig<StrictBufferConfig> {
+
+    }
+
+    interface BufferConfig<BC extends BufferConfig<BC>> {
         /**
          * Create a size-constrained buffer in terms of the maximum number of keys it will store.
          */
-        static BufferConfig maxRecords(final long recordLimit) {
+        static BufferConfig<?> maxRecords(final long recordLimit) {
             return new EagerBufferConfigImpl(recordLimit, Long.MAX_VALUE);
         }
 
         /**
          * Set a size constraint on the buffer in terms of the maximum number of keys it will store.
          */
-        BufferConfig withMaxRecords(final long recordLimit);
+        BC withMaxRecords(final long recordLimit);
 
         /**
          * Create a size-constrained buffer in terms of the maximum number of bytes it will use.
          */
-        static BufferConfig maxBytes(final long byteLimit) {
+        static BufferConfig<?> maxBytes(final long byteLimit) {
             return new EagerBufferConfigImpl(Long.MAX_VALUE, byteLimit);
         }
 
         /**
          * Set a size constraint on the buffer, the maximum number of bytes it will use.
          */
-        BufferConfig withMaxBytes(final long byteLimit);
+        BC withMaxBytes(final long byteLimit);
 
         /**
          * Create a buffer unconstrained by size (either keys or bytes).
@@ -66,7 +74,7 @@ public interface Suppressed<K> {
          * This buffer is "strict" in the sense that it will enforce the time bound or crash.
          * It will never emit early.
          */
-        static BufferConfig unbounded() {
+        static StrictBufferConfig unbounded() {
             return new StrictBufferConfigImpl();
         }
 
@@ -85,7 +93,7 @@ public interface Suppressed<K> {
          * This buffer is "strict" in the sense that it will enforce the time bound or crash.
          * It will never emit early.
          */
-        BufferConfig withNoBound();
+        StrictBufferConfig withNoBound();
 
         /**
          * Set the buffer to gracefully shut down the application when any of its constraints are violated
@@ -93,7 +101,7 @@ public interface Suppressed<K> {
          * This buffer is "strict" in the sense that it will enforce the time bound or shut down.
          * It will never emit early.
          */
-        BufferConfig shutDownWhenFull();
+        StrictBufferConfig shutDownWhenFull();
 
         /**
          * Set the buffer to just emit the oldest records when any of its constraints are violated.
@@ -124,7 +132,7 @@ public interface Suppressed<K> {
      *                     property to emit early and then issue an update later.
      * @return a "final results" mode suppression configuration
      */
-    static Suppressed<Windowed> untilWindowCloses(final BufferConfig bufferConfig) {
+    static Suppressed<Windowed> untilWindowCloses(final StrictBufferConfig bufferConfig) {
         return new FinalResultsSuppressionBuilder<>(null, bufferConfig);
     }
 

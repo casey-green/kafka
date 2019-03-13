@@ -18,13 +18,8 @@ package org.apache.kafka.streams.scala.kstream
 import java.time.Duration
 
 import org.apache.kafka.streams.kstream.{Windowed, Suppressed => SupressedJ}
-import org.apache.kafka.streams.kstream.Suppressed.{BufferConfig => BufferConfigJ}
-import org.apache.kafka.streams.kstream.internals.suppress.{
-  EagerBufferConfigImpl,
-  FinalResultsSuppressionBuilder,
-  StrictBufferConfigImpl,
-  SuppressedInternal
-}
+import org.apache.kafka.streams.kstream.Suppressed.{StrictBufferConfig, BufferConfig => BufferConfigJ}
+import org.apache.kafka.streams.kstream.internals.suppress.{EagerBufferConfigImpl, FinalResultsSuppressionBuilder, StrictBufferConfigImpl, SuppressedInternal}
 
 /**
  * Duplicates the static factory methods inside the Java interface [[org.apache.kafka.streams.kstream.Suppressed]].
@@ -58,7 +53,7 @@ object Suppressed {
    * @return a "final results" mode suppression configuration
    * @see [[org.apache.kafka.streams.kstream.Suppressed.untilTimeLimit]]
    */
-  def untilWindowCloses[K](bufferConfig: BufferConfigJ): SupressedJ[Windowed[K]] =
+  def untilWindowCloses[K](bufferConfig: StrictBufferConfig): SupressedJ[Windowed[K]] =
     new FinalResultsSuppressionBuilder[Windowed[K]](null, bufferConfig)
 
   /**
@@ -72,7 +67,7 @@ object Suppressed {
    * @return a suppression configuration
    * @see [[org.apache.kafka.streams.kstream.Suppressed.untilTimeLimit]]
    */
-  def untilTimeLimit[K](timeToWaitForMoreEvents: Duration, bufferConfig: BufferConfigJ): SupressedJ[K] =
+  def untilTimeLimit[K](timeToWaitForMoreEvents: Duration, bufferConfig: BufferConfigJ[_]): SupressedJ[K] =
     new SuppressedInternal[K](null, timeToWaitForMoreEvents, bufferConfig, null, false)
 
   /**
@@ -88,7 +83,7 @@ object Suppressed {
      * @return size-constrained buffer in terms of the maximum number of keys it will store.
      * @see [[org.apache.kafka.streams.kstream.Suppressed.BufferConfig.maxRecords]]
      */
-    def maxRecords(recordLimit: Long): BufferConfigJ =
+    def maxRecords(recordLimit: Long): BufferConfigJ[_] =
       new EagerBufferConfigImpl(recordLimit, Long.MaxValue)
 
     /**
@@ -98,7 +93,7 @@ object Suppressed {
      * @return size-constrained buffer in terms of the maximum number of bytes it will use.
      * @see [[org.apache.kafka.streams.kstream.Suppressed.BufferConfig.maxBytes]]
      */
-    def maxBytes(byteLimit: Long): BufferConfigJ =
+    def maxBytes(byteLimit: Long): BufferConfigJ[_] =
       new EagerBufferConfigImpl(Long.MaxValue, byteLimit)
 
     /**
@@ -119,6 +114,6 @@ object Suppressed {
      * @return a buffer unconstrained by size (either keys or bytes).
      * @see [[org.apache.kafka.streams.kstream.Suppressed.BufferConfig.unbounded]]
      */
-    def unbounded(): BufferConfigJ = new StrictBufferConfigImpl()
+    def unbounded(): StrictBufferConfig = new StrictBufferConfigImpl()
   }
 }
